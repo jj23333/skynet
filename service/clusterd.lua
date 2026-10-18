@@ -3,6 +3,8 @@ require "skynet.manager"
 local cluster = require "skynet.cluster.core"
 
 local config_name = skynet.getenv "cluster"
+-- 由节点显式启用；未配置时保留原有接收连接行为。
+local nodelay = skynet.getenv "cluster_nodelay" == "true"
 local node_address = {}
 local node_sender = {}
 local node_sender_closed = {}
@@ -145,10 +147,14 @@ function command.listen(source, addr, port, maxclient)
 	local gate = skynet.newservice("gate")
 	if port == nil then
 		local address = assert(node_address[addr], addr .. " is down")
-		skynet.call(gate, "lua", "open", { address = address, port = port, maxclient = maxclient })
+		skynet.call(gate, "lua", "open", {
+			address = address, port = port, maxclient = maxclient, nodelay = nodelay,
+		})
 		skynet.ret(skynet.pack(addr, port))
 	else
-		local realaddr, realport = skynet.call(gate, "lua", "open", { address = addr, port = port, maxclient = maxclient })
+		local realaddr, realport = skynet.call(gate, "lua", "open", {
+			address = addr, port = port, maxclient = maxclient, nodelay = nodelay,
+		})
 		skynet.ret(skynet.pack(realaddr, realport))
 	end
 end
